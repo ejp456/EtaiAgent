@@ -83,8 +83,16 @@ class LLMClient:
             return f"{self.base_url}/embeddings"
         return f"{self.base_url}/v1/embeddings"
 
-    def complete(self, messages: List[Any], tools: Optional[List[Dict]] = None) -> Dict[str, Any]:
-        """Send messages to LLM and return the assistant message dict"""
+    def complete(
+        self,
+        messages: List[Any],
+        tools: Optional[List[Dict]] = None,
+        response_format: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Send messages to LLM and return the assistant message dict.
+
+        response_format: optional Ollama `format` value ("json" or a JSON schema dict) to constrain output.
+        """
         serialized_messages = []
         for msg in messages:
             if hasattr(msg, "to_dict"):
@@ -107,6 +115,8 @@ class LLMClient:
         }
         if tools:
             payload["tools"] = tools
+        if response_format is not None:
+            payload["format"] = response_format
 
         headers = {"Content-Type": "application/json"}
         if self.api_key:

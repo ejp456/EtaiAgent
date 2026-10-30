@@ -9,6 +9,7 @@ import httpx
 
 from agent import run_agent, Message, DEFAULT_SYSTEM_PROMPT, trim_context, load_system_instructions
 from tools import get_tools_schema, list_streaming_apps, list_smart_devices
+from automations import AutomationScheduler, preprocess_user_message, postprocess_agent_turn
 
 MOBILE_CONFIG_FILE = "mobile_config.json"
 
@@ -100,6 +101,17 @@ class AgentSessionManager:
 
         lock = self._get_session_lock(session_id)
         with lock:
+            # Automations: `/automation` commands, an in-progress builder, or keyword triggers
+            # are handled deterministically without calling the LLM.
+            automation_reply = preprocess_user_message(session_id, cleaned)
+            if automation_reply is not None:
+                ts = time.strftime("%I:%M %p")
+                self._display_history[session_id].append({"role": "user", "content": cleaned, "time": ts})
+                self._display_history[session_id].append(
+                    {"role": "assistant", "content": automation_reply, "tool_calls": [], "time": ts}
+                )
+                return {"success": True, "session_id": session_id, "reply": automation_reply, "tool_calls": []}
+
             messages = self._sessions[session_id]
             messages.append(Message(role="user", content=cleaned))
             messages = trim_context(messages, max_turns=self.max_turns_context)
@@ -143,6 +155,10 @@ class AgentSessionManager:
                         assistant_replies.append(m.content.strip())
 
             final_reply = assistant_replies[-1] if assistant_replies else "Done."
+            # If the agent called `create_automation`, hand the conversation to the guided builder.
+            wizard_reply = postprocess_agent_turn(session_id)
+            if wizard_reply is not None:
+                final_reply = wizard_reply
             ts = time.strftime("%I:%M %p")
             self._display_history[session_id].append({
                 "role": "user",
@@ -285,7 +301,9 @@ class TelegramBotRunner:
                 "Commands:\n"
                 "/reset — Clear conversation memory\n"
                 "/apps — List PS5 streaming apps\n"
-                "/devices — List smart home devices"
+                "/devices — List smart home devices\n"
+                "/automation <description> — Build a new automation\n"
+                "/automations — List automations (/automation help for more)"
             )
             self.send_text(int(chat_id), welcome)
             return
@@ -395,6 +413,7 @@ def main() -> None:
         print("=" * 64)
         sys.exit(1)
 
+    AutomationScheduler().start()
     bot.poll_forever()
 
 

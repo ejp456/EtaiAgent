@@ -2,7 +2,9 @@ import os
 import re
 import shlex
 import subprocess
-from typing import Dict, Any, List, Optional
+import threading
+from contextlib import contextmanager
+from typing import Dict, Any, Iterable, Iterator, List, Optional
 import google.protobuf.text_format as text_format
 from tool_definition_pb2 import (
     ToolRegistryConfig,
@@ -26,12 +28,31 @@ REMOTE_SAFE_CONFIRMATION_TOOLS = {
     "write_clipboard",
 }
 
+# Per-thread set of tool names the user already approved ahead of time (e.g. when saving an
+# automation). Lets scheduled automations run confirmation-gated tools without blocking on input().
+_preapproval_context = threading.local()
+
+
+@contextmanager
+def preapproved_tools(tool_names: Iterable[str]) -> Iterator[None]:
+    """Within this context (current thread only), treat `tool_names` as already confirmed by the user."""
+    previous = getattr(_preapproval_context, "names", frozenset())
+    _preapproval_context.names = frozenset(previous) | frozenset(tool_names)
+    try:
+        yield
+    finally:
+        _preapproval_context.names = previous
+
+
 def prompt_user_confirmation(
     tool_name: str,
     args: Dict[str, Any],
     command_preview: Optional[str] = None
 ) -> bool:
     """Prompt the user in the terminal for explicit acknowledgement before running a sensitive tool."""
+    if tool_name in getattr(_preapproval_context, "names", frozenset()):
+        print(f"\033[93m[CONFIRMATION]\033[0m Tool '{tool_name}' -> pre-approved (saved automation)")
+        return True
     if os.environ.get("ETAI_AGENT_AUTO_APPROVE_ALL") == "1":
         return True
     if os.environ.get("ETAI_AGENT_REMOTE_MODE") == "1":

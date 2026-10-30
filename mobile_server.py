@@ -643,6 +643,9 @@ def main() -> None:
         print("  • Telegram Bot:            Click 'Telegram' in the web UI or pass --telegram-token")
     print("=" * 68)
 
+    from automations import AutomationScheduler
+    AutomationScheduler().start()
+
     try:
         server.serve_forever()
     except KeyboardInterrupt:

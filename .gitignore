@@ -23,3 +23,9 @@ homeassistant/config/.cloud/
 homeassistant/config/*.db*
 homeassistant/config/*.log*
 homeassistant/config/*.lock
+
+# Automations runtime files
+.automations_scheduler.lock
+automations/.automations_scheduler.lock
+automations.textproto.tmp
+automations/*.tmp

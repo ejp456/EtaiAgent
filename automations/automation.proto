@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package etaiagent.automations;
+
+// Days of the week for recurring time triggers.
+enum Weekday {
+  WEEKDAY_UNSPECIFIED = 0;
+  MONDAY = 1;
+  TUESDAY = 2;
+  WEDNESDAY = 3;
+  THURSDAY = 4;
+  FRIDAY = 5;
+  SATURDAY = 6;
+  SUNDAY = 7;
+}
+
+// Fires every matching day at hour:minute (local time).
+message TimeTrigger {
+  int32 hour = 1;                   // 0-23
+  int32 minute = 2;                 // 0-59
+  repeated Weekday days = 3;        // empty = every day
+}
+
+// Fires exactly once at a local date/time, then the automation auto-disables.
+message OnceTrigger {
+  string datetime = 1;              // ISO 8601 local, e.g. "2026-10-30T07:00"
+}
+
+// Fires when a user message (CLI / Telegram / mobile) contains this phrase.
+message KeywordTrigger {
+  string phrase = 1;                // case-insensitive, e.g. "code red"
+}
+
+message Trigger {
+  oneof kind {
+    TimeTrigger time = 1;
+    OnceTrigger once = 2;
+    KeywordTrigger keyword = 3;
+  }
+}
+
+// A single tool invocation. Args are stored as strings and coerced to the
+// tool's declared parameter types at execution time.
+message Action {
+  string tool = 1;                  // registered tool name, e.g. "control_light"
+  map<string, string> args = 2;     // e.g. { key: "device" value: "Go" }
+}
+
+message Automation {
+  string id = 1;                    // short slug, unique
+  string name = 2;                  // human-readable name
+  string description = 3;           // original natural-language request
+  bool enabled = 4;
+  Trigger trigger = 5;
+  repeated Action actions = 6;      // executed in order
+  bool notify = 7;                  // push a Telegram message when it fires
+  string created_at = 8;            // ISO 8601
+  string last_run = 9;              // ISO 8601, maintained by the scheduler
+}
+
+message AutomationRegistry {
+  repeated Automation automations = 1;
+}

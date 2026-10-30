@@ -3,12 +3,17 @@ from typing import List
 from llm import LLMClient
 from tools import get_tools_schema, warmup_memory_indices_on_startup
 from agent import run_agent, Message, load_system_instructions, trim_context
+from automations import AutomationScheduler, preprocess_user_message, postprocess_agent_turn
+
+CLI_SESSION_ID = "cli"
 
 def main():
     startup_stats = warmup_memory_indices_on_startup()
+    AutomationScheduler().start()
     print("=" * 60)
     print("  EtaiAgent Interactive Session")
     print("  Continuous chat enabled (keeps last 10 turns of context).")
+    print("  Type /automation to build an automation, /automations to list them.")
     print("  Type 'exit', 'quit', or 'q' to end.")
     print("=" * 60 + "\n")
 
@@ -42,6 +47,12 @@ def main():
             print("\nGoodbye!")
             break
 
+        # Automations: `/automation` commands, an in-progress builder, or keyword triggers
+        automation_reply = preprocess_user_message(CLI_SESSION_ID, user_input)
+        if automation_reply is not None:
+            print(f"\n\033[92mAssistant:\033[0m\n{automation_reply}\n")
+            continue
+
         # Append new user message
         messages.append(Message(role="user", content=user_input))
 
@@ -53,6 +64,12 @@ def main():
 
         # Run agent loop for this turn
         messages = run_agent(messages, tools, max_turns=8)
+
+        # If the agent called `create_automation`, hand off to the guided builder
+        wizard_reply = postprocess_agent_turn(CLI_SESSION_ID)
+        if wizard_reply is not None:
+            print(f"\n\033[92mAssistant:\033[0m\n{wizard_reply}\n")
+            continue
 
         # Extract and print newly generated assistant response
         turn_responses = [

@@ -1,0 +1,171 @@
+# proto-file: automation.proto
+# proto-message: etaiagent.automations.AutomationRegistry
+#
+# EtaiAgent automations. Create with `/automation <description>` in the CLI or Telegram.
+# Hand edits are fine; changes are picked up automatically by the scheduler.
+
+automations {
+  id: "code_red_go_light"
+  name: "Code red → Go light red"
+  description: "Migrated from memories/user_preferences.txt: When the user says \'code red\', set the \'Go\' lamp to red color."
+  trigger {
+    keyword {
+      phrase: "code red"
+    }
+  }
+  actions {
+    tool: "control_light"
+    args {
+      key: "color"
+      value: "red"
+    }
+    args {
+      key: "device"
+      value: "Go"
+    }
+    args {
+      key: "state"
+      value: "on"
+    }
+  }
+  created_at: "2026-10-29T22:15:00-04:00"
+}
+automations {
+  id: "go_light_soft_pink_6am"
+  name: "Go light soft pink at 6am"
+  description: "Migrated from memories/combined_preferences.txt: At 6am, set the \'Go\' light to soft pink."
+  trigger {
+    time {
+      hour: 6
+    }
+  }
+  actions {
+    tool: "control_light"
+    args {
+      key: "brightness"
+      value: "40"
+    }
+    args {
+      key: "color"
+      value: "pink"
+    }
+    args {
+      key: "device"
+      value: "Go"
+    }
+    args {
+      key: "state"
+      value: "on"
+    }
+  }
+  created_at: "2026-10-29T22:15:00-04:00"
+}
+automations {
+  id: "go_light_green_10pm"
+  name: "Go light green at 10pm"
+  description: "Migrated from memories/10pm_go_light_reminder.txt: At 10pm, set the \'Go\' light to green."
+  trigger {
+    time {
+      hour: 22
+    }
+  }
+  actions {
+    tool: "control_light"
+    args {
+      key: "color"
+      value: "green"
+    }
+    args {
+      key: "device"
+      value: "Go"
+    }
+    args {
+      key: "state"
+      value: "on"
+    }
+  }
+  created_at: "2026-10-29T22:15:00-04:00"
+}
+automations {
+  id: "go_light_soft_blue_11pm"
+  name: "Go light soft blue at 11pm"
+  description: "Migrated from memories/combined_preferences.txt: At 11pm, set the \'Go\' light to soft blue for a calming nighttime ambiance."
+  trigger {
+    time {
+      hour: 23
+    }
+  }
+  actions {
+    tool: "control_light"
+    args {
+      key: "brightness"
+      value: "30"
+    }
+    args {
+      key: "color"
+      value: "blue"
+    }
+    args {
+      key: "device"
+      value: "Go"
+    }
+    args {
+      key: "state"
+      value: "on"
+    }
+  }
+  created_at: "2026-10-29T22:15:00-04:00"
+}
+automations {
+  id: "morning_l_status_check"
+  name: "Morning L Status Check"
+  description: "In the morning at 8am let me know how the L is running that day"
+  enabled: true
+  trigger {
+    time {
+      hour: 8
+    }
+  }
+  actions {
+    tool: "desktop_notification"
+    args {
+      key: "message"
+      value: "How is the L running today?"
+    }
+    args {
+      key: "title"
+      value: "L Status"
+    }
+  }
+  notify: true
+  created_at: "2026-10-29T22:21:14-04:00"
+}
+automations {
+  id: "dim_all_lights_at_10_30pm"
+  name: "Dim All Lights at 10:30pm"
+  description: "At 10:30pm let’s dim all the lights to 15%"
+  enabled: true
+  trigger {
+    time {
+      hour: 22
+      minute: 30
+    }
+  }
+  actions {
+    tool: "control_light"
+    args {
+      key: "brightness"
+      value: "15"
+    }
+    args {
+      key: "device"
+      value: "all"
+    }
+    args {
+      key: "state"
+      value: "on"
+    }
+  }
+  notify: true
+  created_at: "2026-10-29T22:22:37-04:00"
+}

@@ -490,5 +490,54 @@ def configure_home_assistant(
     return ha.check_connection()
 
 
+# ==========================================
+# Automations (Rules Engine)
+# ==========================================
+import automations as _automations
+
+
+@tool
+def create_automation(description: str) -> str:
+    """Start the guided automation builder when the user wants to create a new automation, rule, routine, schedule or reminder that should run later or repeatedly (e.g. 'every weekday at 7am open the blinds', 'when I say movie time dim the lights'). Pass the user's request verbatim as `description`. The builder asks the user its own follow-up questions, so do NOT ask them yourself and do NOT perform the actions now."""
+    from automations import request_wizard
+    request_wizard(description)
+    return "Automation builder started. It will ask the user follow-up questions next. Reply with one short acknowledgement only."
+
+
+@tool
+def list_automations() -> List[Dict[str, Any]]:
+    """List saved automations (id, name, trigger, actions, enabled, last run)."""
+    return [
+        {
+            "id": a.id,
+            "name": a.name,
+            "enabled": a.enabled,
+            "trigger": _automations.format_trigger(a),
+            "actions": [_automations.format_action(x) for x in a.actions],
+            "last_run": a.last_run or None,
+        }
+        for a in _automations.get_store().list()
+    ]
+
+
+@tool
+def manage_automation(automation_id: str, action: str) -> Dict[str, Any]:
+    """Manage a saved automation by id or name. action: 'run' (execute now), 'enable', 'disable', or 'delete'."""
+    store = _automations.get_store()
+    auto = store.find(automation_id)
+    if not auto:
+        return {"error": f"No automation matching '{automation_id}'. Call list_automations first."}
+    act = action.strip().lower()
+    if act == "run":
+        return _automations.run_automation(auto, reason="agent request")
+    if act in ("enable", "disable"):
+        store.set_enabled(auto.id, act == "enable")
+        return {"id": auto.id, "name": auto.name, "enabled": act == "enable"}
+    if act == "delete":
+        store.delete(auto.id)
+        return {"id": auto.id, "name": auto.name, "deleted": True}
+    return {"error": "action must be one of: run, enable, disable, delete"}
+
+
 
 

@@ -1,17 +1,17 @@
 {
   "name": "etaiagent",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "EtaiAgent - AI assistant with smart home, media playback, automations, and Telegram bridge",
+  "main": "main.py",
   "scripts": {
-    "start": "srt --settings srt-settings.json -- ./.venv/bin/python main.py",
-    "agent": "srt --settings srt-settings.json -- ./.venv/bin/python main.py",
-    "mobile": "srt --settings srt-settings.json -- ./.venv/bin/python mobile_server.py",
-    "telegram": "srt --settings srt-settings.json -- ./.venv/bin/python telegram_bot.py",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "./run.sh",
+    "headless": "./run.sh --headless",
+    "mobile": "./run.sh --mobile",
+    "telegram": "./run.sh telegram_bot.py",
+    "test": "./run.sh -c 'python -m unittest automations/test_automations.py'"
   },
   "keywords": [],
-  "author": "",
+  "author": "Etai Pinckney",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {

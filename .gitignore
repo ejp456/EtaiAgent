@@ -9,6 +9,9 @@ __pycache__/
 .models/
 
 # Sensitive local config & credential files
+.env
+.env.local
+.env.*.local
 mobile_config.json
 ha_config.json
 hue_config.json

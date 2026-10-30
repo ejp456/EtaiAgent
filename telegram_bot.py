@@ -7,7 +7,7 @@ import threading
 from typing import Dict, Any, List, Optional
 import httpx
 
-from agent import run_agent, Message, DEFAULT_SYSTEM_PROMPT, trim_context
+from agent import run_agent, Message, DEFAULT_SYSTEM_PROMPT, trim_context, load_system_instructions
 from tools import get_tools_schema, list_streaming_apps, list_smart_devices
 
 MOBILE_CONFIG_FILE = "mobile_config.json"
@@ -72,7 +72,7 @@ class AgentSessionManager:
             if session_id not in self._locks:
                 self._locks[session_id] = threading.Lock()
             if session_id not in self._sessions:
-                self._sessions[session_id] = [Message(role="system", content=DEFAULT_SYSTEM_PROMPT)]
+                self._sessions[session_id] = [Message(role="system", content=load_system_instructions())]
             if session_id not in self._display_history:
                 self._display_history[session_id] = []
             return self._locks[session_id]
@@ -81,7 +81,7 @@ class AgentSessionManager:
         """Clear conversation history for a given session ID."""
         lock = self._get_session_lock(session_id)
         with lock:
-            self._sessions[session_id] = [Message(role="system", content=DEFAULT_SYSTEM_PROMPT)]
+            self._sessions[session_id] = [Message(role="system", content=load_system_instructions())]
             self._display_history[session_id] = []
         return {"success": True, "session_id": session_id, "message": "Conversation history cleared."}
 

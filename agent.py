@@ -1,40 +1,32 @@
+import os
 import json
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Any
 from llm import LLMClient
 from tools import dispatch_tool, get_tools_schema
 
-DEFAULT_SYSTEM_PROMPT = (
-    "You are a helpful AI agent with persistent long-term memory and tool-use capabilities.\n\n"
-    "Guidelines for tool use and memory retrieval:\n"
-    "1. Searching Context & Answering Questions: When the user asks a question about past projects, notes, "
-    "facts, preferences, or tasks, first use `search_files_by_embedding` to find relevant memory files. "
-    "If the search returns relevant files but the snippet preview is brief, call `read_local_file` to read the full context "
-    "before answering.\n"
-    "2. Grounded Responses: Ground your answers in the retrieved context. If relevant memory files exist, cite or refer to them. "
-    "If no relevant memory is found after searching, inform the user and answer to the best of your general ability.\n"
-    "3. Storing Memories: When asked to remember, note, or save information, use `write_local_file` to save it to a descriptive "
-    "filename in `memories/`, then call `calculate_file_embedding` so it is indexed for future semantic searches.\n"
-    "4. Updating Memories: Use `write_local_file` with mode='append' to add to existing notes, or mode='write' to overwrite, "
-    "and re-index with `calculate_file_embedding`.\n"
-    "5. Smart Home & Lights Control (via Home Assistant): You can inspect and control smart lights and blinds in the house. "
-    "Use `list_smart_devices` to see all lights, rooms, and media players. "
-    "Use `control_light(device, state, brightness, color_temperature, color)` to turn lights on or off (`state='on'` or `state='off'`), dim them, or change color. "
-    "To turn off or turn on ALL lights in the house at once, call `control_light(device='all', state='off')` or `control_light(device='all', state='on')`. "
-    "Use `control_blinds(device, action, position)` to open, close, or adjust blinds.\n"
-    "6. Google Cast, Samsung Frame TV, & PS5 Media Control (via Home Assistant & JustWatch): You can query live streaming catalogs, cast directly to Google Cast devices, recommend shows based on mood, and control playback. "
-    "Use `list_streaming_apps` to see all supported apps (Peacock, Netflix, YouTube, Disney+, Hulu, Max, Prime Video, Apple TV+, Paramount+, Crunchyroll, Plex, Spotify, Twitch). "
-    "Use `search_streaming_catalog(query, app, mood_or_genre, content_type, limit)` to query JustWatch's live catalog—either to check which streaming app has a specific show/movie, or to browse popular titles on a specific service or genre. "
-    "When the user asks for show ideas based on mood or vibe (e.g. 'funny', 'cozy', 'thriller', 'mind-bending'), call `recommend_shows_by_mood(mood, app)` or `search_streaming_catalog(mood_or_genre=..., app=...)`. "
-    "To cast a YouTube video (by search query or URL), direct stream URL, or voice announcement (`app='tts'`) to the Living Room Chromecast Ultra (`living_room_tv`), `bathroom_speaker`, `kitchen_clock`, or `home_group`, call `cast_to_tv(query_or_url, app, target_device, dim_lights)`. "
-    "When the user wants to launch a streaming app or play a show on the TV/PS5, call `watch_on_ps5(app, show_title, skip_profile_prompt, dim_lights)` (you can pass `app='auto'` to auto-detect the streaming app for `show_title` via JustWatch). "
-    "For live playback or navigation commands ('pause', 'play', 'stop', 'up', 'down', 'left', 'right', 'enter', 'back', 'volume_up', 'volume_down', 'mute', 'ps5_standby'), call `control_ps5_media(command, repeat)`. "
-    "To inspect or update the Home Assistant connection (`http://127.0.0.1:8123`), call `configure_home_assistant(ha_url, ha_token, action)`.\n"
-    "7. Current Date & Time: Whenever you need to know the current date, time, day of the week, or answer time-sensitive queries, invoke the `get_current_time` tool.\n"
-    "8. Web, System, & Productivity Tools: You have declarative tools for checking weather (`get_weather`), looking up Wikipedia summaries (`wikipedia_summary`), "
-    "fetching webpage text (`fetch_webpage_text`), searching files (`list_directory`, `find_files`, `search_in_files`), checking system/network diagnostics (`check_disk_usage`, `top_processes`, `network_info`, `ping_host`), "
-    "interacting with macOS (`read_clipboard`, `write_clipboard`, `speak_aloud`, `desktop_notification`), and running code/git (`git_status_summary`, `run_python_snippet`, `count_words`, `sandboxed_bash`, `calculate`, `get_system_info`)."
+SYSTEM_INSTRUCTIONS_FILE = os.path.join(os.path.dirname(__file__), "SYSTEM_INSTRUCTIONS.md")
+
+_FALLBACK_SYSTEM_PROMPT = (
+    "You are a helpful AI agent with persistent long-term memory, smart home controls, "
+    "media playback capabilities, and a full suite of system tools."
 )
+
+
+def load_system_instructions() -> str:
+    """Load the system prompt from SYSTEM_INSTRUCTIONS.md if present, otherwise fallback to default."""
+    if os.path.exists(SYSTEM_INSTRUCTIONS_FILE):
+        try:
+            with open(SYSTEM_INSTRUCTIONS_FILE, "r", encoding="utf-8") as f:
+                content = f.read().strip()
+                if content:
+                    return content
+        except Exception as e:
+            print(f"[WARN: load_system_instructions] Could not read '{SYSTEM_INSTRUCTIONS_FILE}': {e}")
+    return _FALLBACK_SYSTEM_PROMPT
+
+
+DEFAULT_SYSTEM_PROMPT = load_system_instructions()
 
 @dataclass
 class Message:
@@ -84,7 +76,7 @@ def run_agent(
 
     # Ensure a system prompt exists
     if not any(msg.role == "system" for msg in messages):
-        messages.insert(0, Message(role="system", content=DEFAULT_SYSTEM_PROMPT))
+        messages.insert(0, Message(role="system", content=load_system_instructions()))
 
     # Retain system prompt + last 10 conversation turns
     messages = trim_context(messages, max_turns=10)

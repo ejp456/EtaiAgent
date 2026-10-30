@@ -2,7 +2,7 @@ import sys
 from typing import List
 from llm import LLMClient
 from tools import get_tools_schema, warmup_memory_indices_on_startup
-from agent import run_agent, Message, DEFAULT_SYSTEM_PROMPT, trim_context
+from agent import run_agent, Message, load_system_instructions, trim_context
 
 def main():
     startup_stats = warmup_memory_indices_on_startup()
@@ -14,7 +14,7 @@ def main():
 
     # Initialize conversation state
     messages: List[Message] = [
-        Message(role="system", content=DEFAULT_SYSTEM_PROMPT)
+        Message(role="system", content=load_system_instructions())
     ]
     tools = get_tools_schema()
 

@@ -1,0 +1,45 @@
+services:
+  homeassistant:
+    container_name: homeassistant
+    image: ghcr.io/home-assistant/home-assistant:stable
+    restart: unless-stopped
+    environment:
+      - TZ=America/New_York
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./config:/config
+    depends_on:
+      - mosquitto
+
+  mosquitto:
+    container_name: ha-mosquitto
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  ps5-mqtt:
+    container_name: ha-ps5-mqtt
+    image: ghcr.io/funkeyflo/ps5-mqtt:latest
+    restart: unless-stopped
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - FRONTEND_PORT=8645
+      - CREDENTIAL_STORAGE_PATH=/config/credentials.json
+      - PS5_CONNECT_TIMEOUT=15000
+      - ACCOUNT_CHECK_INTERVAL=5000
+      - DISCOVER_INTERVAL=10000
+      - INCLUDE_PS4_DEVICES=false
+      - LOGGER=ps5-mqtt:*
+    ports:
+      - "8645:8645"
+    volumes:
+      - ./ps5-mqtt:/config
+    depends_on:
+      - mosquitto

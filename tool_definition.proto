@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package etaiagent.tools;
+
+enum ParameterType {
+  TYPE_STRING = 0;
+  TYPE_INTEGER = 1;
+  TYPE_NUMBER = 2;
+  TYPE_BOOLEAN = 3;
+}
+
+message ParameterDefinition {
+  string name = 1;
+  ParameterType type = 2;
+  string description = 3;
+  bool required = 4;
+  string default_value = 5;
+}
+
+message CommandExecution {
+  string command_template = 1;      // e.g. "echo '{{text}}' | wc -w"
+  int32 timeout_seconds = 2;        // default 15s if 0
+  bool run_in_sandbox = 3;          // whether to wrap with Anthropic srt
+  string working_directory = 4;     // optional execution directory
+}
+
+message ToolDefinition {
+  string name = 1;
+  string description = 2;
+  repeated ParameterDefinition parameters = 3;
+
+  oneof execution {
+    CommandExecution command = 4;
+  }
+
+  bool require_confirmation = 5;    // Require explicit user acknowledgement (y/N) before executing
+}
+
+message ToolRegistryConfig {
+  repeated ToolDefinition tools = 1;
+}

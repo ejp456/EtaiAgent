@@ -1,0 +1,46 @@
+{
+  "network": {
+    "allowedDomains": [
+      "192.168.86.39:11434",
+      "192.168.86.46",
+      "discovery.meethue.com",
+      "wttr.in",
+      "*.wikipedia.org",
+      "wikipedia.org",
+      "192.168.86.36",
+      "192.168.86.35",
+      "192.168.86.35:8001",
+      "192.168.86.35:8002",
+      "192.168.86.29",
+      "192.168.86.30",
+      "192.168.86.49",
+      "*.youtube.com",
+      "youtube.com",
+      "127.0.0.1:8123",
+      "localhost:8123",
+      "127.0.0.1:8645",
+      "localhost:8645",
+      "192.168.86.39:8123",
+      "apis.justwatch.com",
+      "*.justwatch.com",
+      "justwatch.com",
+      "api.telegram.org",
+      "127.0.0.1:8650",
+      "localhost:8650"
+    ],
+    "deniedDomains": [],
+    "allowLocalBinding": true
+  },
+  "filesystem": {
+    "denyRead": [
+      "~/.ssh",
+      "~/.aws",
+      "~/.gnupg"
+    ],
+    "allowWrite": [
+      ".",
+      "/tmp"
+    ],
+    "denyWrite": []
+  }
+}

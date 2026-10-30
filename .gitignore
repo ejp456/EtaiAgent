@@ -1,0 +1,25 @@
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Large model weights and caches
+.models/
+
+# Sensitive local config & credential files
+mobile_config.json
+ha_config.json
+hue_config.json
+ps5_tv_config.json
+homeassistant/ps5-mqtt/credentials.json
+homeassistant/mosquitto/data/
+
+# Home Assistant local databases, logs & runtime storage
+homeassistant/config/.storage/
+homeassistant/config/.cache/
+homeassistant/config/.cloud/
+homeassistant/config/*.db*
+homeassistant/config/*.log*
+homeassistant/config/*.lock

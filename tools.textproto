@@ -1,0 +1,320 @@
+# ============================================================================
+# EtaiAgent Declarative Tool Registry (Protocol Buffers Text Format)
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# 1. Web, Weather & Knowledge Tools
+# ----------------------------------------------------------------------------
+
+tools {
+  name: "get_weather"
+  description: "Get the current weather, temperature, wind, and humidity for any city or location."
+  parameters {
+    name: "location"
+    type: TYPE_STRING
+    description: "City name, airport code, or location (e.g. 'New York', 'San Francisco', 'Tokyo')"
+    required: true
+  }
+  command {
+    command_template: "./.venv/bin/python -c 'import os, urllib.parse, httpx; loc = urllib.parse.quote(os.environ[\"ARG_LOCATION\"]); r = httpx.get(f\"https://wttr.in/{loc}?format=%l:+%C+%t+(Feels+like+%f),+Wind:+%w,+Humidity:+%h\", timeout=8.0, follow_redirects=True); print(r.text.strip())'"
+    timeout_seconds: 10
+  }
+}
+
+tools {
+  name: "wikipedia_summary"
+  description: "Fetch a concise encyclopedia summary about any person, place, concept, or topic from Wikipedia."
+  parameters {
+    name: "topic"
+    type: TYPE_STRING
+    description: "Topic title to look up on Wikipedia (e.g. 'Protocol Buffers', 'Quantum computing', 'Ada Lovelace')"
+    required: true
+  }
+  command {
+    command_template: "./.venv/bin/python -c 'import os, urllib.parse, httpx; t = urllib.parse.quote(os.environ[\"ARG_TOPIC\"].strip().replace(\" \", \"_\")); r = httpx.get(f\"https://en.wikipedia.org/api/rest_v1/page/summary/{t}\", headers={\"User-Agent\": \"EtaiAgent/1.0\"}, timeout=8.0, follow_redirects=True); d = r.json(); print(d.get(\"title\", \"\")); print(d.get(\"extract\", \"No summary found.\"))'"
+    timeout_seconds: 10
+  }
+}
+
+tools {
+  name: "fetch_webpage_text"
+  description: "Fetch a webpage URL and extract its clean, readable plain text content (stripping HTML, scripts, and styles)."
+  parameters {
+    name: "url"
+    type: TYPE_STRING
+    description: "Full HTTP/HTTPS URL to fetch (e.g. 'https://example.com')"
+    required: true
+  }
+  parameters {
+    name: "max_chars"
+    type: TYPE_INTEGER
+    description: "Maximum number of characters of extracted text to return (default: 3000)"
+    required: false
+    default_value: "3000"
+  }
+  command {
+    command_template: "./.venv/bin/python -c 'import os, re, html, httpx; u = os.environ[\"ARG_URL\"]; mc = int(os.environ.get(\"ARG_MAX_CHARS\", 3000)); r = httpx.get(u, headers={\"User-Agent\": \"Mozilla/5.0\"}, follow_redirects=True, timeout=10.0); txt = re.sub(r\"<script[^>]*>.*?</script>\", \" \", r.text, flags=re.S|re.I); txt = re.sub(r\"<style[^>]*>.*?</style>\", \" \", txt, flags=re.S|re.I); txt = re.sub(r\"<[^>]+>\", \" \", txt); txt = \" \".join(html.unescape(txt).split()); print(txt[:mc])'"
+    timeout_seconds: 12
+  }
+  require_confirmation: true
+}
+
+# ----------------------------------------------------------------------------
+# 2. Filesystem & Search Tools
+# ----------------------------------------------------------------------------
+
+tools {
+  name: "list_directory"
+  description: "List all files and folders in a directory with permissions, sizes, and modification timestamps."
+  parameters {
+    name: "path"
+    type: TYPE_STRING
+    description: "Directory path to list (default: '.')"
+    required: false
+    default_value: "."
+  }
+  command {
+    command_template: "ls -la {{path}}"
+    timeout_seconds: 5
+  }
+}
+
+tools {
+  name: "find_files"
+  description: "Search for files by filename pattern within a directory tree."
+  parameters {
+    name: "pattern"
+    type: TYPE_STRING
+    description: "Filename substring or glob pattern to search for (e.g. '*.py', 'config', 'md')"
+    required: true
+  }
+  parameters {
+    name: "directory"
+    type: TYPE_STRING
+    description: "Root directory to search in (default: '.')"
+    required: false
+    default_value: "."
+  }
+  command {
+    command_template: "find {{directory}} -maxdepth 3 -not -path '*/.*' -not -path '*/node_modules*' -iname \"*${ARG_PATTERN}*\""
+    timeout_seconds: 8
+  }
+}
+
+tools {
+  name: "search_in_files"
+  description: "Search for a text string or regular expression inside files across a directory (grep)."
+  parameters {
+    name: "query"
+    type: TYPE_STRING
+    description: "Text or regex pattern to search for inside files"
+    required: true
+  }
+  parameters {
+    name: "path"
+    type: TYPE_STRING
+    description: "File or directory path to search within (default: '.')"
+    required: false
+    default_value: "."
+  }
+  command {
+    command_template: "grep -rnI --exclude-dir={.venv,node_modules,.git,__pycache__} {{query}} {{path}} | head -n 40"
+    timeout_seconds: 8
+  }
+}
+
+# ----------------------------------------------------------------------------
+# 3. System & Network Diagnostics Tools
+# ----------------------------------------------------------------------------
+
+tools {
+  name: "check_disk_usage"
+  description: "Check the available disk space and storage capacity on the root drive."
+  command {
+    command_template: "df -h /"
+    timeout_seconds: 5
+  }
+}
+
+tools {
+  name: "top_processes"
+  description: "List the top running processes sorted by CPU usage along with memory consumption."
+  parameters {
+    name: "limit"
+    type: TYPE_INTEGER
+    description: "Number of top processes to return (default: 10)"
+    required: false
+    default_value: "10"
+  }
+  command {
+    command_template: "ps aux -r | head -n $(( {{limit}} + 1 ))"
+    timeout_seconds: 5
+  }
+}
+
+tools {
+  name: "network_info"
+  description: "Get local LAN IP address, active network interfaces, and routing table summary."
+  command {
+    command_template: "echo \"LAN IP (en0): $(ipconfig getifaddr en0 2>/dev/null || echo N/A)\" && ifconfig | grep -E '^[a-z0-9]+:|inet '"
+    timeout_seconds: 5
+  }
+}
+
+tools {
+  name: "ping_host"
+  description: "Ping a network host or IP address to test connectivity and latency."
+  parameters {
+    name: "host"
+    type: TYPE_STRING
+    description: "Target host or IP address to ping"
+    required: true
+  }
+  parameters {
+    name: "count"
+    type: TYPE_INTEGER
+    description: "Number of packets to send (default: 2)"
+    required: false
+    default_value: "2"
+  }
+  command {
+    command_template: "ping -c {{count}} {{host}}"
+    timeout_seconds: 8
+  }
+}
+
+# ----------------------------------------------------------------------------
+# 4. macOS Productivity & Desktop Tools
+# ----------------------------------------------------------------------------
+
+tools {
+  name: "read_clipboard"
+  description: "Read the current text contents of the macOS system clipboard."
+  command {
+    command_template: "pbpaste"
+    timeout_seconds: 5
+  }
+  require_confirmation: true
+}
+
+tools {
+  name: "write_clipboard"
+  description: "Copy text directly into the macOS system clipboard."
+  parameters {
+    name: "text"
+    type: TYPE_STRING
+    description: "The text content to copy to the clipboard"
+    required: true
+  }
+  command {
+    command_template: "printf '%s' {{text}} | pbcopy && echo 'Successfully copied text to clipboard.'"
+    timeout_seconds: 5
+  }
+  require_confirmation: true
+}
+
+tools {
+  name: "speak_aloud"
+  description: "Speak a text message out loud through the Mac's speakers using macOS text-to-speech."
+  parameters {
+    name: "message"
+    type: TYPE_STRING
+    description: "The message to speak aloud"
+    required: true
+  }
+  command {
+    command_template: "say {{message}} && echo 'Spoke message aloud.'"
+    timeout_seconds: 15
+  }
+  require_confirmation: true
+}
+
+tools {
+  name: "desktop_notification"
+  description: "Display a native macOS Notification Center banner with a title and message."
+  parameters {
+    name: "title"
+    type: TYPE_STRING
+    description: "Notification title"
+    required: true
+  }
+  parameters {
+    name: "message"
+    type: TYPE_STRING
+    description: "Notification body message"
+    required: true
+  }
+  command {
+    command_template: "osascript -e \"display notification \\\"${ARG_MESSAGE}\\\" with title \\\"${ARG_TITLE}\\\"\" && echo 'Notification displayed.'"
+    timeout_seconds: 5
+  }
+  require_confirmation: true
+}
+
+# ----------------------------------------------------------------------------
+# 5. Developer, Git & Execution Tools
+# ----------------------------------------------------------------------------
+
+tools {
+  name: "git_status_summary"
+  description: "Show Git branch, working tree status, and the last 5 commits in a repository."
+  parameters {
+    name: "directory"
+    type: TYPE_STRING
+    description: "Repository directory path (default: '.')"
+    required: false
+    default_value: "."
+  }
+  command {
+    command_template: "git -C {{directory}} status -sb && echo '--- Recent Commits ---' && git -C {{directory}} log -n 5 --oneline"
+    timeout_seconds: 5
+  }
+}
+
+tools {
+  name: "run_python_snippet"
+  description: "Execute a short Python code snippet and return its standard output."
+  parameters {
+    name: "code"
+    type: TYPE_STRING
+    description: "Python code to execute (use print() to output results)"
+    required: true
+  }
+  command {
+    command_template: "./.venv/bin/python -c {{code}}"
+    timeout_seconds: 10
+  }
+  require_confirmation: true
+}
+
+tools {
+  name: "count_words"
+  description: "Count the number of words in a given text string."
+  parameters {
+    name: "text"
+    type: TYPE_STRING
+    description: "The text string to count words for"
+    required: true
+  }
+  command {
+    command_template: "echo -n {{text}} | wc -w | tr -d ' '"
+    timeout_seconds: 5
+  }
+}
+
+tools {
+  name: "sandboxed_bash"
+  description: "Execute a bash shell command inside Anthropic's sandbox-runtime Seatbelt sandbox."
+  parameters {
+    name: "command"
+    type: TYPE_STRING
+    description: "The command line string to execute in the sandbox"
+    required: true
+  }
+  command {
+    command_template: "{{command}}"
+    timeout_seconds: 15
+    run_in_sandbox: true
+  }
+  require_confirmation: true
+}

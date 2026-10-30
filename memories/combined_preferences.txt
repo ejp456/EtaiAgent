@@ -1,0 +1,5 @@
+### Combined Preferences
+
+1. When the user says 'code red', set the 'Go' lamp to red color.
+2. At 10pm, set the 'Go' light to green.3. At 6am, set the 'Go' light to soft pink.
+3. At 11pm, set the 'Go' light to soft blue for a calming nighttime ambiance.
